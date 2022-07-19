@@ -1,0 +1,49 @@
+#gforms_shipping_map_builder .conditional_logic_flyout {
+    opacity: 1 !important;
+    z-index: initial;
+    top:30px;
+    height:100vh;
+    left:0;
+    width:100%;
+}
+
+#gforms_shipping_map_builder .conditional_logic_flyout__action select {
+    margin-left: 0;
+}
+
+#gforms_shipping_map_builder .conditional_logic_flyout__rule-save {
+    text-align: left;
+    margin-top:1rem;
+}
+
+#gforms_shipping_map_builder .conditional_logic_flyout .delete_field_choice {
+    opacity: 1;
+    pointer-events: all;
+}
+
+#gforms_shipping_map_builder .button {
+    cursor: pointer;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    height: auto;
+    height: initial;
+    line-height: 1;
+    margin-left: 0;
+    padding: 0.625rem 1.125rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+#gforms_shipping_map_builder .button.primary {
+    background: #3e7da6;
+    color: #fff;
+}
+
+#gforms_shipping_map_builder .button.large {
+    padding-bottom: 0.875rem;
+    padding-top: 0.875rem;
+}

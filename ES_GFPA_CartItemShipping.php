@@ -186,6 +186,7 @@ class ES_GFPA_CartItemShipping {
 
 			if ( isset( $gravity_form_lead[ $shipping_class_field_id ] ) ) {
 				$field = GFAPI::get_field( $gravity_form_data['id'], $shipping_class_field_id );
+				$logic = $field->conditionalLogic;
 				$value = RGFormsModel::get_lead_field_value( $gravity_form_lead, $field );
 
 				// use lead field display so that values are properly gathered from product and product option fields.

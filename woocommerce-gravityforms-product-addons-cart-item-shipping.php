@@ -33,13 +33,23 @@ class ES_GFPA_CartItemShipping_Main {
 		require 'ES_GFPA_CartItemShipping.php';
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'on_admin_enqueue_scripts' ), 100 );
+
 		add_action( 'wp_ajax_wc_gravityforms_get_shipping_fields', array( $this, 'get_fields' ) );
+		add_action( 'wp_ajax_wc_gravityforms_get_form', array( $this, 'get_form' ) );
+		add_action( 'wp_ajax_wc_gravityforms_save_shipping_mapping', array( $this, 'save_shipping_mapping' ) );
+
 		add_filter( 'woocommerce_gravityforms_before_save_metadata', [ $this, 'on_before_save_metadata' ] );
 		add_action( 'woocommerce_gforms_after_field_groups', [ $this, 'render_field_group' ], 10, 2 );
+
 	}
 
 	public function on_admin_enqueue_scripts() {
-		wp_enqueue_script( 'esgfpa_shipping', self::plugin_url() . '/assets/js/admin.js', [ 'jquery' ], self::$scripts_version, true );
+		wp_enqueue_style( 'gform_admin' );
+		wp_enqueue_style( 'esgfpa_shipping', self::plugin_url() . '/assets/styles/admin.css', [ 'gform_admin' ], self::$scripts_version );
+		wp_enqueue_script( 'esgfpa_shipping', self::plugin_url() . '/assets/js/admin.js', [
+			'jquery',
+			'gform_form_admin'
+		], self::$scripts_version, true );
 	}
 
 	public function on_before_save_metadata( $gravity_form_data ) {
@@ -67,6 +77,56 @@ class ES_GFPA_CartItemShipping_Main {
 
 
 	/** Ajax Handling */
+	public function get_form() {
+		check_ajax_referer( 'wc_gravityforms_get_products', 'wc_gravityforms_security' );
+
+		$form_id = $_POST['form_id'] ?? 0;
+		if ( empty( $form_id ) ) {
+			wp_send_json_error( array(
+				'status'  => 'error',
+				'message' => __( 'No Form ID', 'wc_gf_addons' ),
+			) );
+			die();
+		}
+		$form_meta = RGFormsModel::get_form_meta( $form_id );
+
+		$conditional_logic_fields = array();
+		$field_settings           = array();
+		foreach ( GF_Fields::get_all() as $gf_field ) {
+			$settings_arr = $gf_field->get_form_editor_field_settings();
+			if ( ! is_array( $settings_arr ) || empty( $settings_arr ) ) {
+				continue;
+			}
+
+			$settings                          = join( ', .', $settings_arr );
+			$settings                          = '.' . $settings;
+			$field_settings[ $gf_field->type ] = $settings;
+
+			if ( $gf_field->is_conditional_logic_supported() ) {
+				$conditional_logic_fields[] = $gf_field->type;
+			}
+		}
+
+		$form_meta['conditionalLogicFields'] = $conditional_logic_fields;
+		$form_meta['fieldSettings']          = $field_settings;
+
+		$product_id = $_POST['product_id'] ?? 0;
+		if ( $product_id ) {
+			$gravity_form_data             = wc_gfpa()->get_gravity_form_data( $product_id );
+			$form_meta['shippingMappings'] = $gravity_form_data['cart_shipping_mappings'] ?? false;
+
+			$shipping_labels = wp_list_pluck(ES_GFPA_CartItemShipping_Main::get_shipping_classes(), 'name', 'slug' );
+			if (is_array($form_meta['shippingMappings'])) {
+				foreach($form_meta['shippingMappings'] as $key => &$mapping) {
+					$mapping['name'] = $shipping_labels[$key] ?? 'Unknown';
+				}
+			}
+		}
+
+		wp_send_json( $form_meta );
+		die();
+	}
+
 	public function get_fields() {
 		check_ajax_referer( 'wc_gravityforms_get_products', 'wc_gravityforms_security' );
 
@@ -100,6 +160,35 @@ class ES_GFPA_CartItemShipping_Main {
 
 		wp_send_json_success( $response );
 		die();
+	}
+
+	public function save_shipping_mapping() {
+		check_ajax_referer( 'wc_gravityforms_get_products', 'wc_gravityforms_security' );
+
+		$product_id     = $_POST['product_id'] ?? 0;
+		$object_type = $_POST['objectType'];
+
+		if ( empty( $object_type ) ) {
+			wp_send_json_error( array(
+				'status'  => 'error',
+				'message' => __( 'No Object Type', 'wc_gf_addons' ),
+			) );
+			die();
+		}
+
+		if ( $product_id ) {
+			$product = wc_get_product($product_id);
+			$gravity_form_data = wc_gfpa()->get_gravity_form_data( $product_id );
+			if (!isset($gravity_form_data['cart_shipping_mappings'])) {
+				$gravity_form_data['cart_shipping_mappings'] = [];
+			}
+
+			$gravity_form_data['cart_shipping_mappings'][$object_type] = $_POST['data'];
+			$product->update_meta_data( '_gravity_form_data', $gravity_form_data );
+			$product->save_meta_data();
+		}
+
+		wp_send_json_success( 'OK' );
 	}
 
 	/** Helper functions ***************************************************** */
@@ -157,14 +246,25 @@ class ES_GFPA_CartItemShipping_Main {
 		return $markup;
 	}
 
-	public static function get_shipping_class_by_id($shipping_class_id) {
-		$shipping_class_term = get_term($shipping_class_id, 'product_shipping_class');
+	public static function get_shipping_class_by_id( $shipping_class_id ) {
+		$shipping_class_term = get_term( $shipping_class_id, 'product_shipping_class' );
 
-		if( ! is_wp_error($shipping_class_term) && is_a($shipping_class_term, 'WP_Term') ) {
+		if ( ! is_wp_error( $shipping_class_term ) && is_a( $shipping_class_term, 'WP_Term' ) ) {
 			return $shipping_class_term;
 		} else {
 			return false;
 		}
+	}
+
+	public static function get_shipping_classes() {
+		$shipping_classes = get_terms( [
+			'taxonomy'   => 'product_shipping_class',
+			'hide_empty' => false,
+			'orderby'    => 'name'
+		] );
+
+		return $shipping_classes;
+
 	}
 }
 
