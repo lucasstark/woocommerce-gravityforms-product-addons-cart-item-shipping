@@ -1,5 +1,38 @@
 $wc_gfpa_xhr = null;
 
+function ES_GFPA_LoadForm(formId, callback) {
+    jQuery('.conditional_logic_flyout').block({
+        message: null,
+        overlayCSS: {
+            background: '#fff',
+            opacity: 0.6
+        }
+    });
+
+    if ($wc_gfpa_xhr) {
+        $wc_gfpa_xhr.abort();
+    }
+
+    const data = {
+        action: 'wc_gravityforms_get_form',
+        wc_gravityforms_security: wc_gf_addons.nonce,
+        form_id: formId,
+        product_id: wc_gf_addons.product_id
+    };
+
+    $wc_gfpa_xhr = jQuery.post(ajaxurl, data, function (responseData) {
+        jQuery('.conditional_logic_flyout').unblock();
+        window.form = responseData;
+        window.GetConditionalLogicFields = function () {
+            return window.form.conditionalLogicFields;
+        }
+        if (callback !== undefined) {
+            callback();
+        }
+    });
+}
+
+
 function ES_GFPA_SaveShippingMapping(objectType) {
     jQuery('.conditional_logic_flyout').block({
         message: null,
@@ -44,8 +77,8 @@ function ES_GFPA_GetRuleFields(objectType, ruleIndex, selectedFieldId) {
 
             // @todo: the inputType check will likely go away once we've figured out how we're going to manage inputs moving forward
             if (field.inputs && jQuery.inArray(GetInputType(field), ['checkbox', 'email', 'consent']) == -1) {
-                for (var j = 0; j < field.inputs.length; j++) {
-                    var input = field.inputs[j];
+                for (let j = 0; j < field.inputs.length; j++) {
+                    let input = field.inputs[j];
                     if (!input.isHidden) {
                         options.push({
                             label: GetLabel(field, input.id),
@@ -63,7 +96,7 @@ function ES_GFPA_GetRuleFields(objectType, ruleIndex, selectedFieldId) {
         }
     }
 
-    str += GetRuleFieldsOptions(options, selectedFieldId);
+    str += GetRuleFieldsOptions(options, selectedFieldId == 0 ? options[0].value : selectedFieldId);
     str += "</select>";
     return str;
 }
@@ -200,7 +233,7 @@ function ES_GFPA_GetRuleValuesDropDown(choices, objectType, ruleIndex, selectedV
             isAnySelected = true;
         }
         choiceValue = choiceValue.replace(/'/g, "&#039;");
-        var choiceText = jQuery.trim(jQuery('<div>' + choices[i].text + '</div>').text()) === '' ? choiceValue : choices[i].text;
+        let choiceText = ((jQuery('<div>' + choices[i].text + '</div>').text()) === '' ? choiceValue : choices[i].text).trim();
         str += "<option value='" + choiceValue.replace(/'/g, "&#039;") + "' " + selected + ">" + choiceText + "</option>";
     }
 
@@ -283,6 +316,15 @@ function ES_GFPA_MappingRule() {
 }
 
 function ES_GRPA_CreateMapLogic(shippingClass, shippingLabel = '') {
+    console.log(shippingLabel);
+    if (!window.form) {
+        const callback = function () {
+            ES_GRPA_CreateMapLogic(shippingClass, shippingLabel);
+        }
+        ES_GFPA_LoadForm(jQuery('#gravityform-id').val(), callback);
+        return false;
+    }
+
     if (!window.form.shippingMappings) {
         window.form.shippingMappings = {};
         window.form.shippingMappings[shippingClass] = {
@@ -314,6 +356,7 @@ function ES_GRPA_CreateMapLogic(shippingClass, shippingLabel = '') {
     descPieces.objectDescription = objText;
     descPieces.logicType = "<select class=\"gfield_rule_select\" id='" + shippingClass + "_logic_type' onchange='ES_GFPA_SetConditionalProperty(\"" + shippingClass + "\", \"logicType\", jQuery(this).val());'><option value='all' " + allSelected + ">" + gf_vars.all + "</option><option value='any' " + anySelected + ">" + gf_vars.any + "</option></select>";
     descPieces.ofTheFollowingMatch = gf_vars.ofTheFollowingMatch;
+    descPieces.shippingClass = "<input type=\"hidden\" id=\"gf_shippingClass\" value=\"" + shippingClass + "\" />";
 
     var descPiecesArr = makeArray(descPieces);
     var str = '<div class="conditional_logic_flyout__action">' + descPiecesArr.join(' ') + '</div>';
@@ -355,19 +398,26 @@ function ES_GRPA_CreateMapLogic(shippingClass, shippingLabel = '') {
 
     jQuery('#shipping_logic_enabled_field').on('change', function () {
         if (jQuery(this).prop('checked')) {
+            jQuery('.conditional_logic_flyout__main').show();
             ES_GFPA_SetConditionalProperty(jQuery(this).data('objectType'), 'enabled', 'yes');
         } else {
+            jQuery('.conditional_logic_flyout__main').hide();
             ES_GFPA_SetConditionalProperty(jQuery(this).data('objectType'), 'enabled', 'no');
+            ES_GFPA_SaveShippingMapping(jQuery(this).data('objectType'));
         }
     });
 
     jQuery("#" + 'shipping' + "_mapping_logic_container").html(str);
     jQuery('#shipping_logic_enabled_field').data('objectType', shippingClass);
     if (obj.conditionalLogic.enabled === 'yes') {
-        jQuery('#shipping_logic_enabled_field').prop('checked', 'checked').trigger('change');
+        jQuery('.conditional_logic_flyout__main').show();
+        jQuery('#shipping_logic_enabled_field').prop('checked', 'checked');
     } else {
-        jQuery('#shipping_logic_enabled_field').removeAttr('checked').trigger('change')
+        jQuery('.conditional_logic_flyout__main').hide();
+        jQuery('#shipping_logic_enabled_field').removeAttr('checked');
     }
+
+    ES_GFPA_SetRule(shippingClass, 0);
 }
 
 (function ($) {
@@ -378,83 +428,20 @@ function ES_GRPA_CreateMapLogic(shippingClass, shippingLabel = '') {
             ES_GFPA_SetRuleValueDropDown($(this));
         });
 
-
-        $('#gravityform-id').change(function () {
-            getWeightFields($(this).val());
-        });
-
-        $('#enable_cart_shipping_management').on('change', function (e) {
-            getWeightFields($('#gravityform-id').val(), $(this).val());
-        });
-
         if ($('#gravityform-id').val()) {
-            LoadForm($('#gravityform-id').val());
+            //ES_GFPA_LoadForm($('#gravityform-id').val());
         }
     });
 
     let $xhr = null;
 
-    function getWeightFields($form_id, type) {
-
-        if (type == 'no') {
-            $('#gforms_shipping_field_section').html('');
-            return;
-        }
-
-        if ($xhr) {
-            $xhr.abort();
-        }
-
-        const data = {
-            action: 'wc_gravityforms_get_shipping_fields',
-            wc_gravityforms_security: wc_gf_addons.nonce,
-            form_id: $form_id,
-            product_id: wc_gf_addons.product_id
-        };
-
-        $('#gforms_shipping_field_group').block({
-            message: null,
-            overlayCSS: {
-                background: '#fff',
-                opacity: 0.6
-            }
-        });
-
-
-        $xhr = $.post(ajaxurl, data, function (response) {
-
-            $('#gforms_shipping_field_group').unblock();
-
-            $('#gforms_shipping_field_section').show();
-            $('#gforms_shipping_field_section').html(response.data.markup);
-        });
-
-    }
-
     $('#gravityform-id').on('change', function () {
-        LoadForm($(this).val());
-    })
+        //ES_GFPA_LoadForm($(this).val());
+    });
 
-    function LoadForm(formId) {
-        if ($xhr) {
-            $xhr.abort();
-        }
-
-        const data = {
-            action: 'wc_gravityforms_get_form',
-            wc_gravityforms_security: wc_gf_addons.nonce,
-            form_id: formId,
-            product_id: wc_gf_addons.product_id
-        };
-
-        $xhr = $.post(ajaxurl, data, function (responseData) {
-            console.log(responseData);
-            window.form = responseData;
-            window.GetConditionalLogicFields = function () {
-                return window.form.conditionalLogicFields;
-            }
-        });
-    }
+    jQuery('body').on('thickbox:removed', function () {
+        ES_GFPA_SaveShippingMapping(jQuery('#gf_shippingClass').val());
+    });
 
 
 })(jQuery);

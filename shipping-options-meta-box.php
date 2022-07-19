@@ -62,7 +62,7 @@
                                         </span>
                                     </div>
                                 </div>
-                                <div class="conditional_logic_flyout__main">
+                                <div class="conditional_logic_flyout__main" style="display: none;">
                                     <fieldset class="conditional-flyout__main-fields active">
                                         <div id="shipping_mapping_logic_container"></div>
                                     </fieldset>
