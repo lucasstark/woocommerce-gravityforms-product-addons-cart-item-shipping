@@ -12,7 +12,7 @@ multiple shipping classes that your products can be grouped into.
 
 With your WooCommerce shipping information configured, you can then map the shipping classes to a users purchases.
 
-##Mapping Shipping Classes
+## Mapping Shipping Classes
 
 With the plugin active and your WooCommerce shipping information configured, edit a WooCommerce where you will have a form attached. 
 You will see a new tab in the Product Meta Data section under Gravity forms called "Shipping Options". 
