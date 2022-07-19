@@ -1,3 +1,44 @@
+.check-column {
+    position:relative;
+    width:32px;
+}
+
+.check-column .conditional_logic_flyout{
+    opacity: 1 !important;
+    position:relative;
+    z-index: initial;
+    width:100%;
+    height:100%;
+    padding:0;
+    background:none;
+    border:none;
+    box-shadow: none;
+}
+
+.check-column .conditional_logic_flyout__body {
+    padding:0;
+}
+
+.check-column label {
+    float:none;
+    background: #9092b2;
+    border: 2px solid transparent;
+    border-radius: 15px;
+    box-shadow: inset 0 1px 2px rgba(90, 97, 105, 0.15);
+    cursor: pointer;
+    display: inline-block;
+    height: 1.125rem;
+    margin-left:0;
+    margin-right: 0.5rem;
+    padding: 0.1275rem;
+    position: relative;
+    transition: all 0.25s ease;
+    transition-duration: 0.2s;
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.1, 1);
+    width: 2.625rem;
+}
+
 #gforms_shipping_map_builder .conditional_logic_flyout {
     opacity: 1 !important;
     z-index: initial;
