@@ -8,9 +8,9 @@
 
         <div class="gforms-panel options_group" <?php echo empty( $gravity_form_data['id'] ) ? "style='display:none;'" : ''; ?>>
             <div class="wc-product-data-metabox-option-group-label">
-				<?php _e( 'Weight Calculation Field Options', 'wc_gf_addons' ); ?>
+				<?php _e( 'Shipping Options', 'wc_gf_addons' ); ?>
                 <p style="font-weight: normal;">
-					<?php _e( 'Options for setting a field to use as a cart items weight', 'wc_gf_addons' ); ?>
+					<?php _e( 'Options for mapping shipping classes to your form values.', 'wc_gf_addons' ); ?>
                 </p>
             </div>
 

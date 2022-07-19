@@ -51,6 +51,9 @@ function ES_GFPA_SaveShippingMapping(objectType) {
         wc_gravityforms_security: wc_gf_addons.nonce,
         product_id: wc_gf_addons.product_id,
         objectType: objectType,
+        form_id: jQuery('#gravityform-id').val(),
+        enable_cart_shipping_management: jQuery('#enable_cart_shipping_management').val(),
+        enable_cart_shipping_class_display: jQuery('#enable_cart_shipping_class_display').val(),
         data: ES_GFPA_GetConditionalObject(objectType)
     };
 

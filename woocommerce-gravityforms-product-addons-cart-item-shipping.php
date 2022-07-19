@@ -113,12 +113,21 @@ class ES_GFPA_CartItemShipping_Main {
 		$product_id = $_POST['product_id'] ?? 0;
 		if ( $product_id ) {
 			$gravity_form_data             = wc_gfpa()->get_gravity_form_data( $product_id );
+
+			if ( empty( $gravity_form_data ) ) {
+				$gravity_form_data = [];
+			}
+
+			if ( ! isset( $gravity_form_data['cart_shipping_mappings'] ) ) {
+				$gravity_form_data['cart_shipping_mappings'] = [];
+			}
+
 			$form_meta['shippingMappings'] = $gravity_form_data['cart_shipping_mappings'] ?? false;
 
-			$shipping_labels = wp_list_pluck(ES_GFPA_CartItemShipping_Main::get_shipping_classes(), 'name', 'slug' );
-			if (is_array($form_meta['shippingMappings'])) {
-				foreach($form_meta['shippingMappings'] as $key => &$mapping) {
-					$mapping['name'] = $shipping_labels[$key] ?? 'Unknown';
+			$shipping_labels = wp_list_pluck( ES_GFPA_CartItemShipping_Main::get_shipping_classes(), 'name', 'slug' );
+			if ( is_array( $form_meta['shippingMappings'] ) ) {
+				foreach ( $form_meta['shippingMappings'] as $key => &$mapping ) {
+					$mapping['name'] = $shipping_labels[ $key ] ?? 'Unknown';
 				}
 			}
 		}
@@ -165,7 +174,25 @@ class ES_GFPA_CartItemShipping_Main {
 	public function save_shipping_mapping() {
 		check_ajax_referer( 'wc_gravityforms_get_products', 'wc_gravityforms_security' );
 
-		$product_id     = $_POST['product_id'] ?? 0;
+		$form_id = $_POST['form_id'] ?? 0;
+		if ( empty( $form_id ) ) {
+			wp_send_json_error( array(
+				'status'  => 'error',
+				'message' => __( 'No Form ID', 'wc_gf_addons' ),
+			) );
+			die();
+		}
+
+		$product_id  = $_POST['product_id'] ?? 0;
+
+		if ( empty( $product_id ) ) {
+			wp_send_json_error( array(
+				'status'  => 'error',
+				'message' => __( 'No Product ID', 'wc_gf_addons' ),
+			) );
+			die();
+		}
+
 		$object_type = $_POST['objectType'];
 
 		if ( empty( $object_type ) ) {
@@ -177,13 +204,23 @@ class ES_GFPA_CartItemShipping_Main {
 		}
 
 		if ( $product_id ) {
-			$product = wc_get_product($product_id);
+			$product           = wc_get_product( $product_id );
 			$gravity_form_data = wc_gfpa()->get_gravity_form_data( $product_id );
-			if (!isset($gravity_form_data['cart_shipping_mappings'])) {
+
+			if ( empty( $gravity_form_data ) ) {
+				$gravity_form_data = [
+					'id' => $form_id,
+					'enable_cart_shipping_management' => $_POST['enable_cart_shipping_management'] ?? 'no',
+					'enable_cart_shipping_class_display' => $_POST['enable_cart_shipping_class_display'] ?? 'no',
+					'cart_shipping_mappings' => [],
+				];
+			}
+
+			if ( ! isset( $gravity_form_data['cart_shipping_mappings'] ) ) {
 				$gravity_form_data['cart_shipping_mappings'] = [];
 			}
 
-			$gravity_form_data['cart_shipping_mappings'][$object_type] = $_POST['data'];
+			$gravity_form_data['cart_shipping_mappings'][ $object_type ] = $_POST['data'];
 			$product->update_meta_data( '_gravity_form_data', $gravity_form_data );
 			$product->save_meta_data();
 		}
@@ -209,23 +246,8 @@ class ES_GFPA_CartItemShipping_Main {
 		$fields = GFAPI::get_fields_by_type( $form, array( 'option', 'choice', 'singleproduct', 'hidden' ), false );
 
 		if ( $fields ) {
-			$options = array();
-			foreach ( $fields as $field ) {
-				if ( $field['disableQuantity'] !== true ) {
-					$options[ $field['id'] ] = $field['label'];
-				}
-			}
 
 			ob_start();
-			woocommerce_wp_select(
-				array(
-					'id'          => 'cart_shipping_class_field',
-					'label'       => __( 'Field', 'wc_gf_addons' ),
-					'value'       => $selected_field,
-					'options'     => $options,
-					'description' => __( 'A field to use to set the cart item shipping class.', 'wc_gf_addons' )
-				)
-			);
 
 			woocommerce_wp_select( array(
 				'id'          => 'enable_cart_shipping_class_display',
@@ -235,7 +257,7 @@ class ES_GFPA_CartItemShipping_Main {
 					'no'  => __( 'No', 'wc_gf_addons' ),
 					'yes' => __( 'Yes', 'wc_gf_addons' )
 				),
-				'description' => __( 'Choose to show the the cart item\'s shipping classes in the cart.', 'wc_gf_addons' )
+				'description' => __( 'Choose to show the the cart item\'s shipping classes in the cart.  Useful for debugging purposes.', 'wc_gf_addons' )
 			) );
 
 			$markup = ob_get_clean();

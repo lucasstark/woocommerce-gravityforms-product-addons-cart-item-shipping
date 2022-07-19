@@ -12,6 +12,10 @@ multiple shipping classes that your products can be grouped into.
 
 With your WooCommerce shipping information configured, you can then map the shipping classes to a users purchases.
 
+## First Steps
+Be sure to configure the form on the product first as you normally would.  If you don't first select a form and save that configuration the mappings won't be saved. 
+
+
 ## Mapping Shipping Classes
 
 With the plugin active and your WooCommerce shipping information configured, edit a WooCommerce where you will have a form attached. 

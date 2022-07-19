@@ -22,6 +22,7 @@ class ES_GFPA_CartItemShipping {
 
 	protected function __construct() {
 
+		add_filter( 'woocommerce_gravityforms_before_save_metadata', [ $this, 'on_before_save_metadata' ], 99, 2 );
 
 		//Add these filter after the Gravity Forms Product Addons, which is priority 10.
 		add_filter( 'woocommerce_add_cart_item', array( $this, 'add_cart_item' ), 11, 1 );
@@ -38,6 +39,15 @@ class ES_GFPA_CartItemShipping {
 		// helper to show the shipping class id
 		add_filter( 'woocommerce_shipping_classes_columns', [ $this, 'add_shipping_class_column' ] );
 		add_action( 'woocommerce_shipping_classes_column_id', [ $this, 'populate_shipping_class_column' ] );
+	}
+
+	public function on_before_save_metadata( $gravity_form_data, $product_id ) {
+		$saved_data = wc_gfpa()->get_gravity_form_data( $product_id );
+		if ( $saved_data && isset( $saved_data['cart_shipping_mappings'] ) ) {
+			$gravity_form_data['cart_shipping_mappings'] = $saved_data['cart_shipping_mappings'];
+		}
+
+		return $gravity_form_data;
 	}
 
 	public function add_shipping_class_column( $shipping_class_columns ) {
@@ -122,7 +132,7 @@ class ES_GFPA_CartItemShipping {
 		$show              = $gravity_form_data['enable_cart_shipping_class_display'] ?? 'no';
 		if ( $show == 'yes' && isset( $cart_item['shipping_class'] ) ) {
 			// Display original shipping class name
-			if ( isset( $cart_item['shipping_class']['default'] ) &&  $cart_item['shipping_class']['default'] != 0 ) {
+			if ( isset( $cart_item['shipping_class']['default'] ) && $cart_item['shipping_class']['default'] != 0 ) {
 				$default_shipping_class = ES_GFPA_CartItemShipping_Main::get_shipping_class_by_id( $cart_item['shipping_class']['default'] ?? false );
 				$item_data[]            = array(
 					'key'   => __( 'Shipping Class (default)', 'woocommerce' ),
@@ -187,13 +197,13 @@ class ES_GFPA_CartItemShipping {
 
 		if ( isset( $gravity_form_data['cart_shipping_mappings'] ) ) {
 			$shipping_classes = ES_GFPA_CartItemShipping_Main::get_shipping_classes();
-			$shipping_classes = wp_list_pluck($shipping_classes, 'term_id', 'slug');
+			$shipping_classes = wp_list_pluck( $shipping_classes, 'term_id', 'slug' );
 			foreach ( $gravity_form_data['cart_shipping_mappings'] as $key => $mapping ) {
 				if ( $mapping['conditionalLogic']['enabled'] !== 'yes' ) {
 					continue;
 				}
 				if ( $this->evaluate_conditional_logic( $form_meta, $mapping['conditionalLogic'], [], $gravity_form_lead ) ) {
-					$new_shipping_class_id = $shipping_classes[$key] ?? false;
+					$new_shipping_class_id = $shipping_classes[ $key ] ?? false;
 				}
 			}
 		} else if ( $shipping_class_field_id && isset( $gravity_form_lead[ $shipping_class_field_id ] ) ) {
