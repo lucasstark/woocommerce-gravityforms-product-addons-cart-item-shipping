@@ -67,9 +67,29 @@ function ES_GFPA_GetConditionalObject(shippingClass) {
     return window.form.shippingMappings[shippingClass];
 }
 
+function ES_GFPA_GetRuleOperators( objectType, i, fieldId, selectedOperator ) {
+    var str, supportedOperators, operators, selected;
+    supportedOperators = {"is":"is","isnot":"isNot", ">":"greaterThan", "<":"lessThan", "contains":"contains", "starts_with":"startsWith", "ends_with":"endsWith"};
+    str = "<select id='" + objectType + "_rule_operator_" + i + "' class='gfield_rule_select' onchange='ES_GFPA_SetRuleProperty(\"" + objectType + "\", " + i + ", \"operator\", jQuery(this).val());var valueSelector=\"#" + objectType + "_rule_value_" + i + "\"; jQuery(valueSelector).replaceWith(ES_GFPA_GetRuleValues(\"" + objectType + "\", " + i + ",\"" + fieldId + "\", \"\"));jQuery(valueSelector).change();'>";
+    operators = IsEntryMeta(fieldId) ? GetOperatorsForMeta(supportedOperators, fieldId) : supportedOperators;
+
+    operators = gform.applyFilters( 'gform_conditional_logic_operators', operators, objectType, fieldId );
+    jQuery.each(operators,function(operator, stringKey){
+        var operatorText = gf_vars[stringKey];
+        if ( undefined === operatorText ) {
+            // If the operator text has been filtered, it may not be in the gf_vars array.
+            operatorText = stringKey;
+        }
+        selected = selectedOperator == operator ? "selected='selected'" : "";
+        str += "<option value='" + operator + "' " + selected + ">" + operatorText + "</option>"
+    });
+    str +="</select>";
+    return str;
+}
+
 function ES_GFPA_GetRuleFields(objectType, ruleIndex, selectedFieldId) {
 
-    let str = "<select id='" + objectType + "_rule_field_" + ruleIndex + "' class='gfield_rule_select' onchange='jQuery(\"#" + objectType + "_rule_operator_" + ruleIndex + "\").replaceWith(GetRuleOperators(\"" + objectType + "\", " + ruleIndex + ", jQuery(this).val()));jQuery(\"#" + objectType + "_rule_value_" + ruleIndex + "\").replaceWith(ES_GFPA_GetRuleValues(\"" + objectType + "\", " + ruleIndex + ", jQuery(this).val())); ES_GFPA_SetRule(\"" + objectType + "\", " + ruleIndex + "); '>";
+    let str = "<select id='" + objectType + "_rule_field_" + ruleIndex + "' class='gfield_rule_select' onchange='jQuery(\"#" + objectType + "_rule_operator_" + ruleIndex + "\").replaceWith(ES_GFPA_GetRuleOperators(\"" + objectType + "\", " + ruleIndex + ", jQuery(this).val()));jQuery(\"#" + objectType + "_rule_value_" + ruleIndex + "\").replaceWith(ES_GFPA_GetRuleValues(\"" + objectType + "\", " + ruleIndex + ", jQuery(this).val())); ES_GFPA_SetRule(\"" + objectType + "\", " + ruleIndex + "); '>";
     let options = [];
 
     for (var i = 0; i < form.fields.length; i++) {
@@ -212,7 +232,7 @@ function ES_GFPA_GetRuleValues(objectType, ruleIndex, selectedFieldId, selectedV
         selectedValue = selectedValue ? selectedValue.replace(/'/g, "&#039;") : "";
 
         //create a text field for fields that don't have choices (i.e text, textarea, number, email, etc...)
-        str = "<input type='text' placeholder='" + gf_vars["enterValue"] + "' class='gfield_rule_select gfield_rule_input' id='" + dropdownId + "' name='" + dropdownId + "' value='" + selectedValue.replace(/'/g, "&#039;") + "' onchange='SetRuleProperty(\"" + objectType + "\", " + ruleIndex + ", \"value\", jQuery(this).val());' onkeyup='SetRuleProperty(\"" + objectType + "\", " + ruleIndex + ", \"value\", jQuery(this).val());'>";
+        str = "<input type='text' placeholder='" + gf_vars["enterValue"] + "' class='gfield_rule_select gfield_rule_input' id='" + dropdownId + "' name='" + dropdownId + "' value='" + selectedValue.replace(/'/g, "&#039;") + "' onchange='ES_GFPA_SetRuleProperty(\"" + objectType + "\", " + ruleIndex + ", \"value\", jQuery(this).val());' onkeyup='ES_GFPA_SetRuleProperty(\"" + objectType + "\", " + ruleIndex + ", \"value\", jQuery(this).val());'>";
     }
 
     str = gform.applyFilters('gform_conditional_logic_values_input', str, objectType, ruleIndex, selectedFieldId, selectedValue)
@@ -371,7 +391,7 @@ function ES_GRPA_CreateMapLogic(shippingClass, shippingLabel = '') {
         rule = obj.conditionalLogic.rules[i];
         str += "<div width='100%' class='gf_conditional_logic_rules_container conditional_logic_flyout__rule'>";
         str += ES_GFPA_GetRuleFields(shippingClass, i, rule.fieldId);
-        str += GetRuleOperators(shippingClass, i, rule.fieldId, rule.operator);
+        str += ES_GFPA_GetRuleOperators(shippingClass, i, rule.fieldId, rule.operator);
         str += ES_GFPA_GetRuleValues(shippingClass, i, rule.fieldId, rule.value);
 
         str += '<div class="conditional_logic_flyout__rule-controls">';

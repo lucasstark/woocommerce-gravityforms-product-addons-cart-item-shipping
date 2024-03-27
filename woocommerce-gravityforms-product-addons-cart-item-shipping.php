@@ -43,6 +43,15 @@ class ES_GFPA_CartItemShipping_Main {
 
 	}
 
+	public static function is_shipping_class_enabled( $product_id, string $slug ) {
+		$gravity_form_data = wc_gfpa()->get_gravity_form_data( $product_id );
+		if ( isset( $gravity_form_data['cart_shipping_mappings'][ $slug ] ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
 	public function on_admin_enqueue_scripts() {
 		wp_enqueue_style( 'gform_admin' );
 		wp_enqueue_style( 'esgfpa_shipping', self::plugin_url() . '/assets/styles/admin.css', [ 'gform_admin' ], self::$scripts_version );

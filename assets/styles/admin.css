@@ -1,9 +1,9 @@
-.check-column {
+.gforms_shipping_field_section .check-column {
     position:relative;
     width:32px;
 }
 
-.check-column .conditional_logic_flyout{
+.gforms_shipping_field_section .check-column .conditional_logic_flyout{
     opacity: 1 !important;
     position:relative;
     z-index: initial;
@@ -15,11 +15,11 @@
     box-shadow: none;
 }
 
-.check-column .conditional_logic_flyout__body {
+.gforms_shipping_field_section.check-column .conditional_logic_flyout__body {
     padding:0;
 }
 
-.check-column label {
+.gforms_shipping_field_section .check-column label {
     float:none;
     background: #9092b2;
     border: 2px solid transparent;

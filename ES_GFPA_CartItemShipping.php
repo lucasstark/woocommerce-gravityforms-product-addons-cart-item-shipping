@@ -63,7 +63,7 @@ class ES_GFPA_CartItemShipping {
 
 	public function add_cart_item( $cart_item ) {
 
-		//Adjust weight if required based on the gravity form data
+		//Adjust shipping class if required based on the gravity form data
 		if ( isset( $cart_item['_gravity_form_lead'] ) && isset( $cart_item['_gravity_form_data'] ) ) {
 			$the_product_id = $cart_item['data']->get_id();
 			if ( $cart_item['data']->is_type( 'variation' ) ) {
